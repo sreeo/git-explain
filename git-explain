@@ -27,12 +27,12 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# If --to is not specified, use the latest commit (HEAD).
+# If --to is not specified, show usage.
 if [ -z "$commit_b" ]; then
     commit_b="HEAD"
 fi
 
-# If --from is not specified, show usage.
+# If --from is not specified, use the latest commit (HEAD).
 if [ -z "$commit_a" ]; then
     usage
 fi
@@ -61,7 +61,6 @@ response=$(curl -s --location https://api.openai.com/v1/chat/completions \
      \"messages\": [{\"role\": \"user\", \"content\": $escaped_prompt}],
      \"temperature\": 0.7
    }")
-
 # Extract the explanation from the API response.
 explanation=$(echo "$response" | jq -r '.choices[0].message.content')
 
