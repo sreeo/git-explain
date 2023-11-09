@@ -27,12 +27,12 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# If --to is not specified, show usage.
+# If --to is not specified, use the latest commit (HEAD).
 if [ -z "$commit_b" ]; then
     commit_b="HEAD"
 fi
 
-# If --from is not specified, use the latest commit (HEAD).
+# If --from is not specified, show usage.
 if [ -z "$commit_a" ]; then
     usage
 fi
