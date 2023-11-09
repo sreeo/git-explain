@@ -1,0 +1,69 @@
+#!/bin/bash
+# Function to display usage information.
+usage() {
+    echo "Usage: git explain [--from <commit_A>] --to <commit_B>"
+    exit 1
+}
+
+# Initialize variables with default values.
+commit_a=""
+commit_b=""
+
+# Parse command-line arguments.
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --from)
+            shift
+            commit_a="$1"
+            ;;
+        --to)
+            shift
+            commit_b="$1"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+    shift
+done
+
+# If --to is not specified, show usage.
+if [ -z "$commit_b" ]; then
+    commit_b="HEAD"
+fi
+
+# If --from is not specified, use the latest commit (HEAD).
+if [ -z "$commit_a" ]; then
+    usage
+fi
+
+# Find the differences between the two commits.
+text_to_analyze=$(git diff "$commit_a" "$commit_b")
+
+# Read OpenAI API key from environment variable (set your own OpenAI API key).
+openai_api_key="$OPENAI_API_KEY"
+
+if [ -z "$openai_api_key" ]; then
+    echo "Error: OpenAI API key not set. Set the OPENAI_API_KEY environment variable."
+    exit 1
+fi
+
+prompt="The following is the output of a Git diff. Can you explain what are the difference between the two commits. Be verbose and simplistic. :\n$text_to_analyze"
+
+escaped_prompt=$(jq --arg prompt "$prompt$text_to_analyze" -n '$prompt')
+
+# Call the OpenAI API using cURL.
+response=$(curl -s --location https://api.openai.com/v1/chat/completions \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $openai_api_key" \
+  --data-raw "{
+     \"model\": \"gpt-3.5-turbo\",
+     \"messages\": [{\"role\": \"user\", \"content\": $escaped_prompt}],
+     \"temperature\": 0.7
+   }")
+
+# Extract the explanation from the API response.
+explanation=$(echo "$response" | jq -r '.choices[0].message.content')
+
+# Display the explanation or save it to a file as needed.
+echo "Explanation of differences between commits $commit_a and $commit_b: $explanation" | less
